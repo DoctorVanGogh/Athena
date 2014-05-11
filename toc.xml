@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Addon Author="DoctorVanGogh" APIVersion="8" Name="Athena" Description="Coordinate crafting grid enhancements &amp; discovery attempt tracking" Version="2">
+	<Script Name="GeminiAddon/GeminiAddon.lua"/>
+	<Script Name="GeminiHook/GeminiHook-1.0.lua"/>	
+    <Script Name="Athena.lua"/>
+</Addon>
