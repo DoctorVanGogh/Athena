@@ -11,8 +11,8 @@ require "CraftingLib"
 -----------------------------------------------------------------------------------------------
 -- Athena Module Definition
 -----------------------------------------------------------------------------------------------
-local Athena = {} 
- 
+local Athena = Apollo.GetPackage("Gemini:Addon-1.0").tPackage:NewAddon("Athena", false, { "CraftingGrid", }, "Gemini:Hook-1.0")
+
 -----------------------------------------------------------------------------------------------
 -- Constants
 -----------------------------------------------------------------------------------------------
@@ -62,13 +62,6 @@ local mtSchematicLog = {
 }
 
 
-
------------------------------------------------------------------------------------------------
--- Initialization
------------------------------------------------------------------------------------------------
-
-local Athena = Apollo.GetPackage("Gemini:Addon-1.0").tPackage:NewAddon("Athena", false, { "CraftingGrid", }, "Gemini:Hook-1.0")
-
 -----------------------------------------------------------------------------------------------
 -- Athena OnInitialize
 -----------------------------------------------------------------------------------------------
@@ -97,7 +90,7 @@ function Athena:RedrawAll()
 	if tCurrentCraft and tCurrentCraft.nSchematicId and self.tLastMarkersList[tCurrentCraft.nSchematicId] then				
 		local markerWindows = {}
 		
-		for idx, child in ipairs(self.wndMain:FindChild("CoordinateSchematic"):GetChildren()) do
+		for idx, child in ipairs(self.tCraftingGrid.wndMain:FindChild("CoordinateSchematic"):GetChildren()) do
 			if child:GetName() == "GridLastMarker" then
 				table.insert(markerWindows, child)
 			end
