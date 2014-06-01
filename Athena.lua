@@ -6,6 +6,7 @@
  
 require "Window"
 require "CraftingLib"
+require "ApolloColor"
  
 -----------------------------------------------------------------------------------------------
 -- Athena Module Definition
@@ -48,28 +49,7 @@ local ktHotOrColdStringToHotCold =
 	[Apollo.GetString("CoordCrafting_Success")] = CraftingLib.CodeEnumCraftingDiscoveryHotCold.Success,
 }
 
-local mtSchematicLog = {
-	__newindex = function(t, k, v)
-		--Print("INFO: Athena, SchematicLog.__newindex ["..tostring(k).."]=".. tostring(v))			
-		-- only remove entries if we actually discovered *all* subrecipes			
-		if v == nil then
-			local tSchematicInfo = CraftingLib.GetSchematicInfo(k)	
-			local allKnown = true
-		
-			for _ , tSchem in ipairs(tSchematicInfo.tSubRecipes) do
-				if tSchem.bIsUndiscovered then
-					allKnown = false
-					break
-				end			
-			end
-			if allKnown then
-				rawset(t, k, nil)
-			end	
-		else
-			rawset(t, k, v)
-		end
-	end
-}
+local kstrDefaultLogLevel = "WARN"
 
 local glog
 local GeminiColor
@@ -82,7 +62,7 @@ local GeminiLogging
 function Athena:OnInitialize()
 	GeminiLogging = Apollo.GetPackage("Gemini:Logging-1.2").tPackage
 	glog = GeminiLogging:GetLogger({
-		level = GeminiLogging.DEBUG,
+		level = GeminiLogging.INFO,
 		pattern = "%d [%c:%n] %l - %m",
 		appender = "GeminiConsole"
 	})	
@@ -99,11 +79,14 @@ function Athena:OnInitialize()
 	self.tColors = ktHintArrowDefaultColors
 	
 	self.IsCraftingGridHooked = self:Hook_CraftingGrid()
-	
+
 	-- preinitialize in case there is *no* data to deserialize in <see cref="Athena.OnRestore" /> and it never
 	-- get's called.
-	self.tLastMarkersList = setmetatable({}, mtSchematicLog)	
-		
+	self.tLastMarkersList = {}
+	
+	-- init log level
+	self.strLogLevel = kstrDefaultLogLevel
+	
     -- load our form file
 	self.xmlDoc = XmlDoc.CreateFromFile("AthenaConfigForm.xml")
 	self.xmlDoc:RegisterCallback("OnDocumentReady", self)		
@@ -115,20 +98,31 @@ end
 
 
 function Athena:OnDocumentReady()
-	glog:debug(string.format("OnDocumentReady"))
+	glog:debug("OnDocumentReady")
 
 	if self.xmlDoc == nil then
 		return
 	end
 	
-	self.wndMain = Apollo.LoadForm(self.xmlDoc, "AthenaConfigForm", nil, self)
-	self.xmlDoc = nil;
+	self.wndMain = Apollo.LoadForm(self.xmlDoc, "AthenaConfigForm", nil, self)	
+	self.wndMain:FindChild("HeaderLabel"):SetText(NAME)
+	
+	GeminiLocale:TranslateWindow(self.localization, self.wndMain)			
+	
+	self.wndLogLevelsPopup = self.wndMain:FindChild("LogLevelChoices")
+	self.wndLogLevelsPopup:Show(false)
+		
+	self.wndMain:FindChild("LogLevelButton"):AttachWindow(self.wndLogLevelsPopup)
+	self.xmlDoc = nil
 	
 	Apollo.RegisterSlashCommand("athena", "OnSlashCommand", self)
 	
 	self:InitializeForm()
 	
 	self.wndMain:Show(false);
+	
+	Apollo.RegisterEventHandler("WindowManagementReady", "OnWindowManagementReady", self)
+	
 end
 
 function Athena:OnSlashCommand(strCommand, strParam)
@@ -136,8 +130,15 @@ function Athena:OnSlashCommand(strCommand, strParam)
 end
 
 function Athena:OnConfigure(sCommand, sArgs)
-	self.wndMain:Show(false)
-	self:ToggleWindow()
+	if self.wndMain then
+		self.wndMain:Show(false)
+		self:ToggleWindow()
+	end
+end
+
+
+function Athena:OnWindowManagementReady()
+    Event_FireGenericEvent("WindowManagementAdd", {wnd = self.wndMain, strName = "Athena"})
 end
 
 -----------------------------------------------------------------------------------------------
@@ -162,9 +163,8 @@ function Athena:RedrawAll()
 				local eHotCold = tAttempt.eHotCold or ktHotOrColdStringToHotCold[tAttempt.strHotOrCold]
 			
 				if eHotCold  == nil then
-					--Print("WARN: No raw hot/cold data for schematic "..tCurrentCraft.nSchematicId.." attempt #"..idx)
+					glog:warn("No raw hot/cold data for schematic %s, attempt #%s", tostring(tCurrentCraft.nSchematicId), tostring(idx))
 				else
-					--Print("INFO: schematic "..tCurrentCraft.nSchematicId.." attempt #"..idx.." = ".. eHotCold)
 					wndMarker:SetBGColor(self.tColors[eHotCold])
 				end
 			end		
@@ -172,8 +172,39 @@ function Athena:RedrawAll()
 	end			
 end
 
+function Athena:OnCraftingSchematicLearned(tCraftingGrid, idTradeskill, idSchematic)
+
+	glog:debug("OnCraftingSchematicLearned(%s, %s)", tostring(idTradeskill), tostring(idSchematic))
+	if not tCraftingGrid.wndMain or not tCraftingGrid.wndMain:IsValid() then
+		return
+	end
+
+	local tSchematicInfo = CraftingLib.GetSchematicInfo(idSchematic)
+	local nParentId = tSchematicInfo and tSchematicInfo.nParentSchematicId or idSchematic
+	tCraftingGrid.tLastMarkersList[idSchematic] = nil
+	
+	if idSchematic ~= nParentId then
+		local allKnown = true
+			
+		for _ , tSchem in ipairs(tSchematicInfo.tSubRecipes) do
+			if tSchem.bIsUndiscovered then
+				allKnown = false
+				break
+			end			
+		end
+		
+		glog:debug("  parentId=%s, allKnown=%s", tostring(nParentId), tostring(allKnown))
+		
+		if allKnown then
+			tCraftingGrid.tLastMarkersList[nParentId] = nil
+		end				
+	end
+		
+	tCraftingGrid.bFullDestroyNeeded = true
+end
+
 function Athena:CraftingGrid_OnDocumentReady()
-	Athena:CopyRestoredMarkersToCraftingGrid()
+	self:CopyRestoredMarkersToCraftingGrid()
 end
 
 -----------------------------------------------------------------------------------------------
@@ -183,7 +214,7 @@ function Athena:UpdateColorContainer(container, key)
 	local color = self.tColors[key]
 	local colorHex
 	
-	glog:debug(string.format("UpdateColorContainer(%s) - color=%s", tostring(key), tostring(color)))
+	glog:debug("UpdateColorContainer(%s) - color=%s", tostring(key), tostring(color))
 		
 	if type(color) == "table" then
 		colorHex = self.gcolor:RGBAPercToHex(color.r, color.g, color.b, color.a)
@@ -194,9 +225,18 @@ function Athena:UpdateColorContainer(container, key)
 		colorHex = self.gcolor:RGBAPercToHex(color.r, color.g, color.b, color.a)		
 	end
 	
+	local picker = container:FindChild("ColorPickerButton")
+
+	local oldData = container:GetData()
+
+	if oldData == nil then
+		local popup = self.gcolor:CreateColorPicker(self, "OnColorPicked", true, colorHex, container, key);
+		popup:Show(false)
+		picker:AttachWindow(popup)	
+	end
+		
 	container:SetData(key)
 	
-	local picker = container:FindChild("ColorPickerButton")
 	
 	picker:UpdatePixie(1, {
 		strSprite = "BasicSprites:WhiteFill",
@@ -216,10 +256,7 @@ function Athena:InitializeForm()
 	if not self.wndMain then
 		return
 	end
-	
-	GeminiLocale:TranslateWindow(self.localization, self.wndMain)		
 
-	self.wndMain:FindChild("HeaderLabel"):SetText(NAME)
 	local tColors = {
 		["ColorHot"] = CraftingLib.CodeEnumCraftingDiscoveryHotCold.Hot,
 		["ColorWarm"] = CraftingLib.CodeEnumCraftingDiscoveryHotCold.Warm,
@@ -230,9 +267,7 @@ function Athena:InitializeForm()
 		self:UpdateColorContainer(self.wndMain:FindChild(strName), key)
 	end
 	
-	if self.locSavedWindowLoc then
-		self.wndMain:MoveToLocation(self.locSavedWindowLoc)
-	end	
+	self.wndMain:FindChild("LogLevelButton"):SetText(self.strLogLevel)
 end
 
 
@@ -245,6 +280,8 @@ function Athena:Hook_CraftingGrid()
 	
 	self:PostHook(tCraftingGrid ,"RedrawAll")
 	self:PostHook(tCraftingGrid ,"OnDocumentReady", "CraftingGrid_OnDocumentReady")	
+	self:RawHook(tCraftingGrid, "OnCraftingSchematicLearned")
+	
 	
 	-- store reference to <see cref="CraftingGrid" />
 	self.tCraftingGrid = tCraftingGrid		
@@ -289,13 +326,15 @@ function Athena:StoreV1Data(tMarkers)
 		tSave.tJournal[idSchematic] = tEntries 
 	
 		for entryKey, tAttempt in ipairs(tJournal) do
-			--tAttempt  has:
-			--	["nPosX"] = nNewPosX,
-			--	["nPosY"] = nNewPosY,
-			--	["idSchematic"] = nSchematicId,
-			--	["strTooltip"] = strTooltipSaved,
-			--	["strHotOrCold"] = Apollo.GetString("CoordCrafting_ViewLastCraft"),
-			--  ["eDirection"]
+			--[[ 
+				tAttempt  has:
+					["nPosX"] = nNewPosX,
+					["nPosY"] = nNewPosY,
+					["idSchematic"] = nSchematicId,
+					["strTooltip"] = strTooltipSaved,
+					["strHotOrCold"] = Apollo.GetString("CoordCrafting_ViewLastCraft"),
+	  			    ["eDirection"]  
+			]]
 				
 			tEntries[entryKey] = {
 				["nPosX"] 			= tAttempt.nPosX,
@@ -320,9 +359,8 @@ function Athena:StoreV1Data(tMarkers)
 		end	
 	end	
 	
-	local locWindowLocation = self.wndMain and self.wndMain:GetLocation() or self.locSavedWindowLoc						
-	tSave.tWindowLocation = locWindowLocation and locWindowLocation:ToTable() or nil
-
+	tSave.strLogLevel = self.strLogLevel
+	
 	return tSave
 end
 
@@ -356,7 +394,7 @@ function Athena:RestoreV1Data(tData)
 		end
 	end		
 		
-	return tJournal, tData.tColors, tData.tWindowLocation 
+	return tJournal, tData.tColors, tData.strLogLevel 
 end	
 
 
@@ -382,7 +420,7 @@ function Athena:OnRestoreSettings(eLevel, tData)
 		return
 	end
 
-	local tLastMarkers, tColors, tWindowLocation
+	local tLastMarkers, tColors, strLogLevel
 			
 	local version = tData.version	
 	
@@ -390,26 +428,26 @@ function Athena:OnRestoreSettings(eLevel, tData)
 		-- sry, can't read unversioned data
 	else
 		if version == "1" then
-			tLastMarkers, tColors, tWindowLocation = self:RestoreV1Data(tData)	
+			tLastMarkers, tColors, strLogLevel = self:RestoreV1Data(tData)	
 		end		
 	end		
+	
+	self.strLogLevel = strLogLevel or kstrDefaultLogLevel
+	self.log:SetLevel(self.strLogLevel)	
 		
 	--[[
 		 Do *NOT* deserialize into <see cref="CraftingGrid" />'s  <see cref="CraftingGrid.tLastMarkersList" /> yet, 
 	 	it gets initialized to <code>{}</code> in <see cref="CraftingGrid.OnDocumentReady"/>, which will be called
 	 	*after* we have finished, so any setting here is pointless.
-	 	Instead store a reference, so our own OnDocumentReady hook from <see cref="CreateDerivedCraftingGridMetatable" />  
+	 	Instead store a reference, so our own OnDocumentReady hook <see cref="CraftingGrid_OnDocumentReady" />  
 	 	can copy the value after <see cref="CraftingGrid" />'s call.
 	]]
-	self.tLastMarkersList = setmetatable(tLastMarkers or {}, mtSchematicLog)	
+	self.tLastMarkersList = tLastMarkers or {}
 	self.tColors = tColors or ktHintArrowDefaultColors	
 	
-	if tWindowLocation then
-		self.locSavedWindowLoc = WindowLocation.new(tWindowLocation)	
-	end
-
 	self:CheckForCraftingGridMarkerListInitialization()
 	
+
 end
 
 
@@ -427,14 +465,9 @@ function Athena:ToggleWindow( wndHandler, wndControl, eMouseButton )
 	end
 end
 
-function Athena:WindowMove( wndHandler, wndControl, nOldLeft, nOldTop, nOldRight, nOldBottom )
-	self.locSavedWindowLoc = self.wndMain:GetLocation()
-end
-
-
 function Athena:ColorValueChanged( wndHandler, wndControl, strText )
 	local bFound, _, strKey = strText:find("^(#?%x%x%x%x%x%x%x%x)$")	
-	glog:debug(string.format("ColorValueChanged(%s)", tostring(bFound)))	
+	glog:debug("ColorValueChanged(%s)", tostring(bFound))	
 	
 	if bFound then
 		local parent = wndControl:GetParent()
@@ -445,19 +478,50 @@ function Athena:ColorValueChanged( wndHandler, wndControl, strText )
 	end
 end
 
-function Athena:ColorPickerSignal( wndHandler, wndControl, eMouseButton )
-	local parent = wndControl:GetParent()
-	self.gcolor:ShowColorPicker(self, "OnColorPicked", true, wndControl:GetData(), {container = parent, key= parent:GetData()})
-end
 
-function Athena:OnColorPicked(strColor, token)
-	glog:debug(string.format("OnColorPicked(%s) - key=%s", tostring(strColor), tostring(token and token.key)))
+function Athena:OnColorPicked(strColor, container, key)
+	glog:debug("OnColorPicked(%s) - key=%s", tostring(strColor), tostring(key))
 
-	local key = token.key
-	local container = token.container
-	
 	self.tColors[key] = strColor
 	self:UpdateColorContainer(container, key)
 end
 
+
+function Athena:AdvancedCheckToggle( wndHandler, wndControl, eMouseButton )
+	if wndHandler ~= wndControl then
+		return
+	end	
+	
+	local wndAdvanced = self.wndMain:FindChild("AdvancedContainer")
+	local wndContent = self.wndMain:FindChild("Content")
+		
+	if wndHandler:IsChecked() then
+		wndAdvanced:Show(true)	
+	else
+		wndAdvanced:Show(false)	
+		wndContent:SetVScrollPos(0)
+	end	
+
+	wndContent:ArrangeChildrenVert()
+end
+
+
+function Athena:OnSelectLogLevelFormClose( wndHandler, wndControl, eMouseButton )
+	local wndForm = wndControl:GetParent() 
+	wndForm:Close()
+end
+
+
+function Athena:LogLevelSelectSignal( wndHandler, wndControl, eMouseButton )
+	if wndHandler ~= wndControl then
+		return
+	end
+
+	wndControl:GetParent():Close()	
+		
+	local text = wndControl:GetText()
+	self.strLogLevel = text
+	self.log:SetLevel(text)	
+	self.wndMain:FindChild("LogLevelButton"):SetText(text)
+end
 

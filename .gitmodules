@@ -4,12 +4,12 @@
 [submodule "GeminiHook"]
 	path = GeminiHook
 	url = https://github.com/wildstarnasa/GeminiHook.git
-[submodule "GeminiColor"]
-	path = GeminiColor
-	url = https://github.com/wildstarnasa/GeminiColor.git
 [submodule "GeminiLogging"]
 	path = GeminiLogging
 	url = https://github.com/wildstarnasa/GeminiLogging.git
 [submodule "GeminiLocale"]
 	path = GeminiLocale
 	url = https://github.com/wildstarnasa/GeminiLocale.git
+[submodule "GeminiColor"]
+	path = GeminiColor
+	url = https://github.com/wildstarnasa/GeminiColor.git
