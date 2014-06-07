@@ -9,4 +9,5 @@ L["Colors"] = "Couleurs"
 L["Advanced"] = "Avancé"
 L["Log Level"] = "Niveau de registre"
 L["Levels:"] = "Niveaux"
+L["Marker Opacity"] = "Marqueur opacité"
 

@@ -8,3 +8,4 @@ L["Colors"] = true
 L["Advanced"] = true
 L["Log Level"] = true
 L["Levels:"] = true
+L["Marker Opacity"] = true

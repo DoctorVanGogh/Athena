@@ -9,4 +9,5 @@ L["Colors"] = "Farben"
 L["Advanced"] = "Erweitert"
 L["Log Level"] = "Protokoll Stufe"
 L["Levels:"] = "Stufen"
+L["Marker Opacity"] = "Marker Deckkraft"
 

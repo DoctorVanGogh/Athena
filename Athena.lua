@@ -50,6 +50,7 @@ local ktHotOrColdStringToHotCold =
 }
 
 local kstrDefaultLogLevel = "WARN"
+local kfDefaultMarkerOpacity = 1.0
 
 local glog
 local GeminiColor
@@ -86,6 +87,9 @@ function Athena:OnInitialize()
 	
 	-- init log level
 	self.strLogLevel = kstrDefaultLogLevel
+	
+	-- init marker opacity
+	self.fMarkerOpacity = kfDefaultMarkerOpacity 
 	
     -- load our form file
 	self.xmlDoc = XmlDoc.CreateFromFile("AthenaConfigForm.xml")
@@ -145,6 +149,10 @@ end
 -- Athena Hooks for CraftingGrid
 -----------------------------------------------------------------------------------------------
 function Athena:RedrawAll() 	
+	if not self.tCraftingGrid.wndMain then
+		return 
+	end
+
 	-- colorize markers - assumes windows are found in same order as attempts are logged	
 	local tCurrentCraft = CraftingLib.GetCurrentCraft()	
 	
@@ -201,6 +209,16 @@ function Athena:OnCraftingSchematicLearned(tCraftingGrid, idTradeskill, idSchema
 	end
 		
 	tCraftingGrid.bFullDestroyNeeded = true
+end
+
+function Athena:HelperBuildMarker()
+	glog:debug("HelperBuildMarker")
+	
+	if not self.tCraftingGrid or not self.tCraftingGrid.wndMarker then
+		return
+	end
+	
+	self.tCraftingGrid.wndMarker:SetOpacity(self.fMarkerOpacity)	
 end
 
 function Athena:CraftingGrid_OnDocumentReady()
@@ -268,6 +286,9 @@ function Athena:InitializeForm()
 	end
 	
 	self.wndMain:FindChild("LogLevelButton"):SetText(self.strLogLevel)
+
+	self.wndMain:FindChild("MarkerOpacitySlider"):SetValue(self.fMarkerOpacity)	
+	self.wndMain:FindChild("MarkerPreview"):SetOpacity(self.fMarkerOpacity)	
 end
 
 
@@ -280,6 +301,7 @@ function Athena:Hook_CraftingGrid()
 	
 	self:PostHook(tCraftingGrid ,"RedrawAll")
 	self:PostHook(tCraftingGrid ,"OnDocumentReady", "CraftingGrid_OnDocumentReady")	
+	self:PostHook(tCraftingGrid ,"HelperBuildMarker", "HelperBuildMarker")
 	self:RawHook(tCraftingGrid, "OnCraftingSchematicLearned")
 	
 	
@@ -360,6 +382,7 @@ function Athena:StoreV1Data(tMarkers)
 	end	
 	
 	tSave.strLogLevel = self.strLogLevel
+	tSave.fMarkerOpacity = self.fMarkerOpacity
 	
 	return tSave
 end
@@ -394,7 +417,7 @@ function Athena:RestoreV1Data(tData)
 		end
 	end		
 		
-	return tJournal, tData.tColors, tData.strLogLevel 
+	return tJournal, tData.tColors, tData.strLogLevel, tData.fMarkerOpacity
 end	
 
 
@@ -420,7 +443,7 @@ function Athena:OnRestoreSettings(eLevel, tData)
 		return
 	end
 
-	local tLastMarkers, tColors, strLogLevel
+	local tLastMarkers, tColors, strLogLevel, fMarkerOpacity 
 			
 	local version = tData.version	
 	
@@ -428,12 +451,14 @@ function Athena:OnRestoreSettings(eLevel, tData)
 		-- sry, can't read unversioned data
 	else
 		if version == "1" then
-			tLastMarkers, tColors, strLogLevel = self:RestoreV1Data(tData)	
+			tLastMarkers, tColors, strLogLevel, fMarkerOpacity = self:RestoreV1Data(tData)	
 		end		
 	end		
 	
 	self.strLogLevel = strLogLevel or kstrDefaultLogLevel
 	self.log:SetLevel(self.strLogLevel)	
+	
+	self.fMarkerOpacity = fMarkerOpacity or kfDefaultMarkerOpacity
 		
 	--[[
 		 Do *NOT* deserialize into <see cref="CraftingGrid" />'s  <see cref="CraftingGrid.tLastMarkersList" /> yet, 
@@ -523,5 +548,16 @@ function Athena:LogLevelSelectSignal( wndHandler, wndControl, eMouseButton )
 	self.strLogLevel = text
 	self.log:SetLevel(text)	
 	self.wndMain:FindChild("LogLevelButton"):SetText(text)
+end
+
+function Athena:OnMarkerOpacityChanged( wndHandler, wndControl, fNewValue, fOldValue )
+	glog:debug("OnMarkerOpacityChanged: %.1f", fNewValue)
+
+	if wndHandler ~= wndControl then
+		return
+	end
+	
+	self.fMarkerOpacity = fNewValue
+	self.wndMain:FindChild("MarkerPreview"):SetOpacity(self.fMarkerOpacity)	
 end
 
