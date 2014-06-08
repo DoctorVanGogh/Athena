@@ -192,6 +192,7 @@ function Athena:OnCraftingSchematicLearned(tCraftingGrid, idTradeskill, idSchema
 	tCraftingGrid.tLastMarkersList[idSchematic] = nil
 	
 	if idSchematic ~= nParentId then
+		tSchematicInfo = CraftingLib.GetSchematicInfo(nParentId)
 		local allKnown = true
 			
 		for _ , tSchem in ipairs(tSchematicInfo.tSubRecipes) do
