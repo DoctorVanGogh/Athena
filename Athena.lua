@@ -195,11 +195,13 @@ function Athena:OnCraftingSchematicLearned(tCraftingGrid, idTradeskill, idSchema
 		tSchematicInfo = CraftingLib.GetSchematicInfo(nParentId)
 		local allKnown = true
 			
-		for _ , tSchem in ipairs(tSchematicInfo.tSubRecipes) do
-			if tSchem.bIsUndiscovered then
-				allKnown = false
-				break
-			end			
+		if tSchematicInfo then
+			for _ , tSchem in ipairs(tSchematicInfo.tSubRecipes) do
+				if tSchem.bIsUndiscovered then
+					allKnown = false
+					break
+				end			
+			end
 		end
 		
 		glog:debug("  parentId=%s, allKnown=%s", tostring(nParentId), tostring(allKnown))
