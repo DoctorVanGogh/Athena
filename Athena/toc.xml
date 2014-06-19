@@ -6,6 +6,7 @@
     <Script Name="lib/GeminiHook/GeminiHook-1.0.lua"/>
     <Script Name="lib/GeminiColor/GeminiColor.lua"/>
     <Form Name="lib/GeminiColor/GeminiColor.xml"/>
+	<Script Name="lib/GeminiDB/GeminiDB-1.0.lua" />
     <Script Name="lib/GeminiLocale/GeminiLocale.lua"/>
     <Script Name="Localization/enUS.lua"/>
     <Script Name="Localization/deDE.lua"/>

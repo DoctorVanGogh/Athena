@@ -13,3 +13,6 @@
 [submodule "GeminiColor"]
 	path = Athena/lib/GeminiColor
 	url = https://github.com/wildstarnasa/GeminiColor.git
+[submodule "Athena/lib/GeminiDB"]
+	path = Athena/lib/GeminiDB
+	url = https://github.com/wildstarnasa/GeminiDB.git

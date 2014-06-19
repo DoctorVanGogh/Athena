@@ -20,6 +20,7 @@ local Athena = Apollo.GetPackage("Gemini:Addon-1.0").tPackage:NewAddon(
 																	"CraftingGrid", 
 																	"Gemini:Logging-1.2", 
 																	"GeminiColor",
+																	"Gemini:DB-1.0",
 																	"Gemini:Locale-1.0"
 																}, 
 																"Gemini:Hook-1.0")
