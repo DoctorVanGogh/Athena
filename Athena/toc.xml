@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Addon Author="DoctorVanGogh" APIVersion="8" Name="Athena" Description="Coordinate crafting grid enhancements &amp; discovery attempt tracking" Version="3">
-    <Script Name="GeminiLogging/inspect.lua"/>
-    <Script Name="GeminiLogging/GeminiLogging.lua"/>
-    <Script Name="GeminiAddon/GeminiAddon.lua"/>
-    <Script Name="GeminiHook/GeminiHook-1.0.lua"/>
-    <Script Name="GeminiColor/GeminiColor.lua"/>
-    <Form Name="GeminiColor/GeminiColor.xml"/>
-    <Script Name="GeminiLocale/GeminiLocale.lua"/>
+    <Script Name="lib/GeminiLogging/inspect.lua"/>
+    <Script Name="lib/GeminiLogging/GeminiLogging.lua"/>
+    <Script Name="lib/GeminiAddon/GeminiAddon.lua"/>
+    <Script Name="lib/GeminiHook/GeminiHook-1.0.lua"/>
+    <Script Name="lib/GeminiColor/GeminiColor.lua"/>
+    <Form Name="lib/GeminiColor/GeminiColor.xml"/>
+    <Script Name="lib/GeminiLocale/GeminiLocale.lua"/>
     <Script Name="Localization/enUS.lua"/>
     <Script Name="Localization/deDE.lua"/>
     <Script Name="Localization/frFR.lua"/>

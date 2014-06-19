@@ -1,15 +1,15 @@
 [submodule "GeminiAddon"]
-	path = GeminiAddon
+	path = Athena/lib/GeminiAddon
 	url = https://github.com/wildstarnasa/GeminiAddon.git
 [submodule "GeminiHook"]
-	path = GeminiHook
+	path = Athena/lib/GeminiHook
 	url = https://github.com/wildstarnasa/GeminiHook.git
 [submodule "GeminiLogging"]
-	path = GeminiLogging
+	path = Athena/lib/GeminiLogging
 	url = https://github.com/wildstarnasa/GeminiLogging.git
 [submodule "GeminiLocale"]
-	path = GeminiLocale
+	path = Athena/lib/GeminiLocale
 	url = https://github.com/wildstarnasa/GeminiLocale.git
 [submodule "GeminiColor"]
-	path = GeminiColor
+	path = Athena/lib/GeminiColor
 	url = https://github.com/wildstarnasa/GeminiColor.git
